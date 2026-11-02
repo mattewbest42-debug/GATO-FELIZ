@@ -1,0 +1,11 @@
+{
+  "name": "mi-gato-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Control de comidas de mi gato",
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  }
+}

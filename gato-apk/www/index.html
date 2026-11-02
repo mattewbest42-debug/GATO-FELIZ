@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi gato · Control de comidas</title>
+<style>
+  :root {
+    --blanco: #fafafa;
+    --gris-claro: #e4e4e4;
+    --gris: #9b9b9b;
+    --gris-oscuro: #5a5a5a;
+    --raya: #2b2b2b;
+    --fur: #9b9b9b;
+    --stripe: #2b2b2b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    color: var(--raya);
+    background: var(--blanco);
+    min-height: 100vh;
+  }
+  /* Fondo con rayas de gato */
+  header {
+    padding: 28px 20px;
+    text-align: center;
+    background: repeating-linear-gradient(115deg,
+      var(--gris-claro) 0 22px, #d2d2d2 22px 28px,
+      var(--gris-claro) 28px 60px, #bdbdbd 60px 64px);
+    border-bottom: 4px solid var(--raya);
+  }
+  header h1 { margin: 0; font-size: 1.6rem; letter-spacing: .5px; }
+  header p { margin: 6px 0 0; color: var(--gris-oscuro); }
+  main { max-width: 720px; margin: 0 auto; padding: 20px; display: grid; gap: 18px; }
+  .panel {
+    background: #fff;
+    border: 2px solid var(--raya);
+    border-radius: 14px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 8px;
+    background: repeating-linear-gradient(90deg, var(--raya) 0 14px, var(--gris-claro) 14px 30px);
+  }
+  .panel h2 { margin: 8px 0 12px; font-size: 1.1rem; }
+  label { display: block; font-size: .9rem; margin-bottom: 4px; color: var(--gris-oscuro); }
+  input, select {
+    width: 100%; padding: 10px; font-size: 1rem;
+    border: 2px solid var(--gris); border-radius: 8px; background: var(--blanco);
+    color: var(--raya);
+  }
+  input:focus, select:focus, button:focus-visible { outline: 3px solid var(--raya); outline-offset: 2px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  button {
+    font: inherit; cursor: pointer; border-radius: 10px;
+    border: 2px solid var(--raya); padding: 10px 16px;
+    background: var(--raya); color: var(--blanco);
+  }
+  button.suave { background: var(--blanco); color: var(--raya); }
+  button:active { transform: translateY(1px); }
+  .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .oculto { display: none; }
+
+  .escenario { display: flex; flex-direction: column; align-items: center; padding-top: 6px; }
+  .caja-gato {
+    width: 100%; height: 280px; display: flex; align-items: flex-end; justify-content: center;
+    background: repeating-linear-gradient(0deg, var(--blanco) 0 40px, var(--gris-claro) 40px 42px);
+    border-radius: 10px;
+  }
+  #gato { width: 220px; transform-origin: bottom center; transition: transform .8s ease; }
+  #gato.comiendo { animation: saltito .5s ease; }
+  @keyframes saltito { 30% { translate: 0 -14px; } 100% { translate: 0 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    #gato, #gato.comiendo { transition: none; animation: none; }
+  }
+  .nombre { font-size: 1.5rem; margin: 12px 0 2px; font-weight: bold; }
+  .datos { color: var(--gris-oscuro); margin: 0; text-align: center; }
+  .etapa { margin-top: 6px; font-weight: bold; }
+
+  .contadores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; width: 100%; }
+  .contador { text-align: center; border: 2px solid var(--gris); border-radius: 10px; padding: 10px 4px; }
+  .contador strong { display: block; font-size: 1.6rem; }
+  .contador span { font-size: .8rem; color: var(--gris-oscuro); }
+  .barra { height: 14px; background: var(--gris-claro); border-radius: 8px; overflow: hidden; margin-top: 14px; width: 100%; border: 1px solid var(--gris); }
+  .barra > div { height: 100%; width: 0; background: repeating-linear-gradient(135deg, var(--raya) 0 8px, var(--gris-oscuro) 8px 16px); transition: width .5s; }
+  #alimentar { width: 100%; font-size: 1.15rem; padding: 14px; margin-top: 14px; }
+  #aviso { min-height: 1.4em; margin: 10px 0 0; text-align: center; color: var(--gris-oscuro); }
+  ul#historial { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; }
+  #historial li { padding: 8px 4px; border-bottom: 1px dashed var(--gris); font-size: .95rem; }
+  .vacio { color: var(--gris-oscuro); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Control de comidas de mi gato</h1>
+  <p>Cada comida lo ayuda a crecer</p>
+</header>
+
+<main>
+  <!-- Formulario del gato -->
+  <section class="panel" id="panelForm">
+    <h2>Datos de tu gato</h2>
+    <div class="grid">
+      <div>
+        <label for="nombre">Nombre</label>
+        <input id="nombre" maxlength="30" placeholder="Ej: Michi">
+      </div>
+      <div>
+        <label for="raza">Tipo de gato (raza)</label>
+        <input id="raza" maxlength="30" placeholder="Ej: Mestizo, Siamés, Persa">
+      </div>
+      <div>
+        <label for="color">Color</label>
+        <select id="color">
+          <option value="gris">Gris</option>
+          <option value="blanco">Blanco</option>
+          <option value="negro">Negro</option>
+          <option value="naranja">Naranja</option>
+          <option value="cafe">Café</option>
+        </select>
+      </div>
+      <div>
+        <label for="edad">Edad (años)</label>
+        <input id="edad" type="number" min="0" max="30" step="0.5" placeholder="Ej: 2">
+      </div>
+      <div>
+        <label for="metaDia">Comidas por día</label>
+        <input id="metaDia" type="number" min="1" max="10" value="3">
+      </div>
+    </div>
+    <div class="acciones">
+      <button id="guardar">Guardar gato</button>
+      <button id="cancelar" class="suave oculto">Cancelar</button>
+    </div>
+  </section>
+
+  <!-- Gato -->
+  <section class="panel oculto" id="panelGato">
+    <h2>Tu gato</h2>
+    <div class="escenario">
+      <div class="caja-gato">
+        <svg id="gato" viewBox="0 0 200 200" role="img" aria-label="Dibujo de tu gato">
+          <!-- cola -->
+          <path d="M150 150 C190 140 195 90 170 80" fill="none" stroke="var(--fur)" stroke-width="16" stroke-linecap="round"/>
+          <path d="M178 112 l10 -4 M180 98 l10 -4" stroke="var(--stripe)" stroke-width="5" stroke-linecap="round"/>
+          <!-- cuerpo -->
+          <ellipse cx="100" cy="150" rx="58" ry="40" fill="var(--fur)" stroke="var(--stripe)" stroke-width="3"/>
+          <path d="M70 120 q8 14 0 28 M92 116 q8 16 0 32 M114 116 q8 16 0 32 M136 122 q6 12 0 24"
+                fill="none" stroke="var(--stripe)" stroke-width="5" stroke-linecap="round"/>
+          <!-- patas -->
+          <ellipse cx="72" cy="186" rx="15" ry="9" fill="var(--fur)" stroke="var(--stripe)" stroke-width="3"/>
+          <ellipse cx="128" cy="186" rx="15" ry="9" fill="var(--fur)" stroke="var(--stripe)" stroke-width="3"/>
+          <!-- orejas -->
+          <path d="M58 52 L66 14 L96 38 Z" fill="var(--fur)" stroke="var(--stripe)" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M142 52 L134 14 L104 38 Z" fill="var(--fur)" stroke="var(--stripe)" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M65 40 L68 26 L80 36 Z M135 40 L132 26 L120 36 Z" fill="#e9c5c5"/>
+          <!-- cabeza -->
+          <ellipse cx="100" cy="76" rx="46" ry="40" fill="var(--fur)" stroke="var(--stripe)" stroke-width="3"/>
+          <path d="M100 38 V54 M88 40 L90 54 M112 40 L110 54" stroke="var(--stripe)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M56 70 h12 M56 82 h10 M144 70 h-12 M144 82 h-10" stroke="var(--stripe)" stroke-width="4" stroke-linecap="round"/>
+          <!-- cara -->
+          <ellipse cx="82" cy="74" rx="7" ry="9" fill="#fafafa" stroke="var(--raya)" stroke-width="2"/>
+          <ellipse cx="118" cy="74" rx="7" ry="9" fill="#fafafa" stroke="var(--raya)" stroke-width="2"/>
+          <ellipse cx="82" cy="75" rx="3" ry="6" fill="#2b2b2b"/>
+          <ellipse cx="118" cy="75" rx="3" ry="6" fill="#2b2b2b"/>
+          <path d="M95 88 h10 l-5 6 Z" fill="#d89a9a"/>
+          <path d="M100 94 v4 M100 98 q-6 6 -12 2 M100 98 q6 6 12 2" fill="none" stroke="var(--raya)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="nombre" id="vNombre"></p>
+      <p class="datos" id="vDatos"></p>
+      <p class="etapa" id="vEtapa"></p>
+
+      <div class="contadores">
+        <div class="contador"><strong id="cHoy">0</strong><span>comidas hoy</span></div>
+        <div class="contador"><strong id="cMeta">3</strong><span>meta diaria</span></div>
+        <div class="contador"><strong id="cTotal">0</strong><span>comidas en total</span></div>
+      </div>
+      <div class="barra" aria-hidden="true"><div id="barra"></div></div>
+
+      <button id="alimentar">Alimentar</button>
+      <p id="aviso" role="status"></p>
+    </div>
+    <div class="acciones">
+      <button id="editar" class="suave">Editar datos</button>
+      <button id="reiniciar" class="suave">Reiniciar comidas</button>
+    </div>
+  </section>
+
+  <!-- Historial -->
+  <section class="panel oculto" id="panelHist">
+    <h2>Últimas comidas</h2>
+    <ul id="historial"></ul>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var CLAVE = "gato-app-v1";
+
+  var COLORES = {
+    gris:    { fur: "#9b9b9b", stripe: "#2b2b2b" },
+    blanco:  { fur: "#f4f4f4", stripe: "#8a8a8a" },
+    negro:   { fur: "#4a4a4a", stripe: "#111111" },
+    naranja: { fur: "#d9904f", stripe: "#8a4b1c" },
+    cafe:    { fur: "#8a6a4f", stripe: "#3b2a1d" }
+  };
+
+  var estado = cargar();
+
+  function $(id) { return document.getElementById(id); }
+
+  function cargar() {
+    try {
+      var s = localStorage.getItem(CLAVE);
+      if (s) return JSON.parse(s);
+    } catch (e) {}
+    return null;
+  }
+  function guardarEstado() {
+    try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (e) {}
+  }
+
+  function hoyTexto(d) {
+    var f = d || new Date();
+    return f.getFullYear() + "-" + (f.getMonth() + 1) + "-" + f.getDate();
+  }
+  function comidasHoy() {
+    var h = hoyTexto();
+    return estado.log.filter(function (t) { return hoyTexto(new Date(t)) === h; }).length;
+  }
+
+  function etapa(total) {
+    if (total < 5)  return "Gatito";
+    if (total < 15) return "Gato joven";
+    if (total < 30) return "Gato adulto";
+    return "Gato grande";
+  }
+  // Tamaño: de 55 % a 115 % según las comidas acumuladas (tope en 60)
+  function escala(total) {
+    return 0.55 + (Math.min(total, 60) / 60) * 0.6;
+  }
+
+  function mostrarFormulario(editando) {
+    $("panelForm").classList.remove("oculto");
+    $("cancelar").classList.toggle("oculto", !editando);
+    if (editando && estado) {
+      $("nombre").value = estado.nombre;
+      $("raza").value = estado.raza;
+      $("color").value = estado.color;
+      $("edad").value = estado.edad;
+      $("metaDia").value = estado.meta;
+    }
+  }
+
+  function pintar() {
+    var hayGato = !!estado;
+    $("panelGato").classList.toggle("oculto", !hayGato);
+    $("panelHist").classList.toggle("oculto", !hayGato);
+    $("panelForm").classList.toggle("oculto", hayGato);
+    if (!hayGato) return;
+
+    var c = COLORES[estado.color] || COLORES.gris;
+    var g = $("gato");
+    g.style.setProperty("--fur", c.fur);
+    g.style.setProperty("--stripe", c.stripe);
+    g.style.transform = "scale(" + escala(estado.total) + ")";
+
+    $("vNombre").textContent = estado.nombre;
+    var edadTxt = estado.edad === 1 ? "1 año" : estado.edad + " años";
+    $("vDatos").textContent = estado.raza + ", color " + estado.color + ", " + edadTxt;
+    $("vEtapa").textContent = etapa(estado.total);
+
+    var hoy = comidasHoy();
+    $("cHoy").textContent = hoy;
+    $("cMeta").textContent = estado.meta;
+    $("cTotal").textContent = estado.total;
+    $("barra").style.width = Math.min(100, (hoy / estado.meta) * 100) + "%";
+
+    var ul = $("historial");
+    ul.innerHTML = "";
+    if (!estado.log.length) {
+      var vacio = document.createElement("li");
+      vacio.className = "vacio";
+      vacio.textContent = "Aún no hay comidas. Pulsa Alimentar para registrar la primera.";
+      ul.appendChild(vacio);
+    } else {
+      estado.log.slice(-20).reverse().forEach(function (t) {
+        var li = document.createElement("li");
+        li.textContent = new Date(t).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" });
+        ul.appendChild(li);
+      });
+    }
+  }
+
+  $("guardar").addEventListener("click", function () {
+    var nombre = $("nombre").value.trim();
+    var raza = $("raza").value.trim() || "Sin raza definida";
+    var edad = parseFloat($("edad").value);
+    var meta = parseInt($("metaDia").value, 10);
+    if (!nombre) { alert("Escribe el nombre de tu gato."); return; }
+    if (isNaN(edad) || edad < 0) { alert("Escribe una edad válida."); return; }
+    if (isNaN(meta) || meta < 1) meta = 3;
+
+    var previo = estado || { total: 0, log: [] };
+    estado = {
+      nombre: nombre, raza: raza, color: $("color").value,
+      edad: edad, meta: meta, total: previo.total, log: previo.log
+    };
+    guardarEstado();
+    pintar();
+  });
+
+  $("cancelar").addEventListener("click", pintar);
+  $("editar").addEventListener("click", function () { mostrarFormulario(true); });
+
+  $("alimentar").addEventListener("click", function () {
+    var hoy = comidasHoy();
+    if (hoy >= estado.meta) {
+      var seguir = confirm(estado.nombre + " ya comió " + hoy + " veces hoy (meta: " + estado.meta + "). ¿Darle otra comida?");
+      if (!seguir) return;
+    }
+    estado.total += 1;
+    estado.log.push(Date.now());
+    guardarEstado();
+
+    var g = $("gato");
+    g.classList.remove("comiendo");
+    void g.getBoundingClientRect();
+    g.classList.add("comiendo");
+
+    pintar();
+    var nueva = comidasHoy();
+    $("aviso").textContent = nueva >= estado.meta
+      ? estado.nombre + " completó sus " + estado.meta + " comidas de hoy."
+      : "Le quedan " + (estado.meta - nueva) + " comida(s) hoy.";
+  });
+
+  $("reiniciar").addEventListener("click", function () {
+    if (confirm("Se borrarán todas las comidas y " + estado.nombre + " volverá a su tamaño inicial. ¿Continuar?")) {
+      estado.total = 0;
+      estado.log = [];
+      guardarEstado();
+      $("aviso").textContent = "";
+      pintar();
+    }
+  });
+
+  pintar();
+})();
+</script>
+</body>
+</html>
